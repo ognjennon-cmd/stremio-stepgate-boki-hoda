@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Šetnja pre filma</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-size: 18px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .subtitle {
+      color: #aaa;
+      font-size: 16px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .progress-ring {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0 30px;
+      position: relative;
+    }
+    .ring-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .ring-text .num {
+      font-size: 42px;
+      font-weight: bold;
+      color: #fff;
+    }
+    .ring-text .label { font-size: 14px; color: #aaa; margin-top: 4px; }
+    .status {
+      text-align: center;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 28px;
+      font-weight: 500;
+      font-size: 18px;
+      line-height: 1.4;
+    }
+    .status.locked {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .status.unlocked {
+      background: rgba(34, 197, 94, 0.15);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    label {
+      display: block;
+      font-size: 16px;
+      color: #ccc;
+      margin-bottom: 10px;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 18px 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 22px;
+      outline: none;
+      transition: border 0.2s;
+      margin-bottom: 16px;
+    }
+    input[type="number"]:focus { border-color: #4ade80; }
+    button {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+      color: #0a0a0a;
+      border: none;
+      border-radius: 12px;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(74, 222, 128, 0.3); }
+    .history {
+      margin-top: 30px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .history h3 {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .history-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      font-size: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .history-row .date { color: #aaa; }
+    .history-row .steps { color: #4ade80; font-weight: 500; }
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #22c55e;
+      color: #0a0a0a;
+      padding: 14px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 17px;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.3s;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .help-text {
+      margin-top: 14px;
+      font-size: 14px;
+      color: #888;
+      line-height: 1.5;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚶 Šetnja pre filma</h1>
+    <p class="subtitle">Upišite koliko ste koraka napravili danas</p>
+
+    <div class="progress-ring">
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12"/>
+        <circle id="progress-circle" cx="100" cy="100" r="88" fill="none"
+                stroke="url(#grad)" stroke-width="12" stroke-linecap="round"
+                stroke-dasharray="553" stroke-dashoffset="553"
+                transform="rotate(-90 100 100)"
+                style="transition: stroke-dashoffset 0.6s ease"/>
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4ade80"/>
+            <stop offset="100%" stop-color="#22c55e"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="ring-text">
+        <div class="num" id="steps-display">0</div>
+        <div class="label">od <span id="goal-display">3000</span> koraka</div>
+      </div>
+    </div>
+
+    <div id="status" class="status locked">Učitavanje...</div>
+
+    <label for="steps-input">Koliko koraka ste napravili danas?</label>
+    <input type="number" id="steps-input" placeholder="Na primer: 3500" min="0" max="200000">
+    <button onclick="saveSteps()">Sačuvaj</button>
+
+    <p class="help-text">
+      Pogledajte broj koraka na telefonu (aplikacija "Zdravlje", "Samsung Health"
+      ili sličnu) i upišite koliko ste danas hodali.
+    </p>
+
+    <div class="history">
+      <h3>Poslednjih 7 dana</h3>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Sačuvano!</div>
+
+  <script>
+    async function loadStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        document.getElementById('steps-display').textContent = data.steps.toLocaleString();
+        document.getElementById('goal-display').textContent = data.goal.toLocaleString();
+
+        const pct = Math.min(1, data.steps / data.goal);
+        const circumference = 553;
+        document.getElementById('progress-circle').style.strokeDashoffset = circumference * (1 - pct);
+
+        const statusEl = document.getElementById('status');
+        if (data.unlocked) {
+          statusEl.className = 'status unlocked';
+          statusEl.innerHTML = '✅ Bravo! Možete da gledate film.';
+        } else {
+          statusEl.className = 'status locked';
+          statusEl.innerHTML = `Treba još <strong>${data.remaining.toLocaleString()}</strong> koraka`;
+        }
+
+        if (data.steps > 0) {
+          document.getElementById('steps-input').value = data.steps;
+        }
+      } catch (e) {
+        document.getElementById('status').textContent = 'Greška u komunikaciji sa serverom';
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch('/api/history');
+        const data = await res.json();
+        const list = document.getElementById('history-list');
+        const recent = data.slice(0, 7);
+        if (recent.length === 0) {
+          list.innerHTML = '<div style="color:#666;font-size:15px;padding:8px 0;">Još nema upisa.</div>';
+          return;
+        }
+        list.innerHTML = recent.map(row => `
+          <div class="history-row">
+            <span class="date">${row.date}</span>
+            <span class="steps">${row.steps.toLocaleString()} koraka</span>
+          </div>
+        `).join('');
+      } catch (e) {
+        // tiho
+      }
+    }
+
+    async function saveSteps() {
+      const steps = document.getElementById('steps-input').value;
+      if (!steps) return;
+      try {
+        const res = await fetch('/api/steps', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ steps: parseInt(steps, 10) })
+        });
+        if (res.ok) {
+          showToast('Sačuvano!');
+          loadStatus();
+          loadHistory();
+        }
+      } catch (e) {
+        showToast('Greška pri snimanju');
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    document.getElementById('steps-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') saveSteps();
+    });
+
+    loadStatus();
+    loadHistory();
+  </script>
+</body>
+</html>
