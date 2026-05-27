@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StepGate Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+    .container { max-width: 700px; margin: 0 auto; }
+    h1 { font-size: 24px; margin-bottom: 6px; color: #f59e0b; }
+    .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 30px; }
+    .panel {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    h2 { font-size: 16px; margin-bottom: 16px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 1px; }
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #334155;
+    }
+    .stat:last-child { border-bottom: none; }
+    .stat-label { color: #94a3b8; }
+    .stat-value { color: #4ade80; font-weight: 600; font-size: 18px; }
+    .stat-value.warn { color: #f59e0b; }
+    input, button {
+      font-family: inherit;
+      font-size: 15px;
+    }
+    .form-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    input[type="text"], input[type="number"], input[type="date"], input[type="password"] {
+      flex: 1;
+      padding: 10px 12px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      outline: none;
+    }
+    input:focus { border-color: #f59e0b; }
+    button {
+      padding: 10px 18px;
+      background: #f59e0b;
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #fbbf24; }
+    button.danger { background: #ef4444; color: white; }
+    button.danger:hover { background: #dc2626; }
+    .history-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #334155;
+    }
+    .history-row:last-child { border: none; }
+    .toast {
+      position: fixed; top: 20px; right: 20px;
+      background: #22c55e; color: #0a0a0a;
+      padding: 12px 20px; border-radius: 8px; font-weight: 600;
+      opacity: 0; transform: translateY(-20px);
+      transition: all 0.3s;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .login-card {
+      max-width: 400px; margin: 100px auto;
+      background: #1e293b; border-radius: 12px; padding: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div id="login" style="display:none;">
+    <div class="login-card">
+      <h1>🔒 Admin pristup</h1>
+      <p class="subtitle" style="margin-top:8px;">Unesite admin ključ</p>
+      <div class="form-row" style="margin-top:20px;">
+        <input type="password" id="key-input" placeholder="Admin ključ">
+      </div>
+      <button onclick="login()" style="width:100%;">Uđi</button>
+    </div>
+  </div>
+
+  <div id="dashboard" class="container" style="display:none;">
+    <h1>🚶 StepGate Admin</h1>
+    <p class="subtitle">Kontrola i pregled aktivnosti</p>
+
+    <div class="panel">
+      <h2>Danas</h2>
+      <div class="stat">
+        <span class="stat-label">Datum</span>
+        <span class="stat-value" id="today-date">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Koraci</span>
+        <span class="stat-value" id="today-steps">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Dnevni cilj</span>
+        <span class="stat-value warn" id="today-goal">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Status filma</span>
+        <span class="stat-value" id="today-status">—</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Ručno postavi korake</h2>
+      <p style="color:#94a3b8;font-size:13px;margin-bottom:14px;">
+        Korisno ako je upisao previše/premalo, ili hoćeš da dodaš za neki prošli dan.
+      </p>
+      <div class="form-row">
+        <input type="date" id="set-date">
+        <input type="number" id="set-steps" placeholder="Broj koraka">
+        <button onclick="setManual()">Postavi</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Istorija (poslednjih 60 dana)</h2>
+      <div id="history-list"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Opasna zona</h2>
+      <button class="danger" onclick="resetAll()">Obriši sve podatke</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let ADMIN_KEY = '';
+
+    function getKeyFromUrl() {
+      const params = new URLSearchParams(location.search);
+      return params.get('key') || '';
+    }
+
+    async function login() {
+      const key = document.getElementById('key-input').value || getKeyFromUrl();
+      if (!key) return;
+      try {
+        const res = await fetch('/api/admin/all?key=' + encodeURIComponent(key));
+        if (res.status === 403) {
+          showToast('Pogrešan ključ');
+          return;
+        }
+        ADMIN_KEY = key;
+        localStorage.setItem('stepgate_admin_key', key);
+        showDashboard();
+      } catch (e) {
+        showToast('Greška');
+      }
+    }
+
+    async function showDashboard() {
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      await loadData();
+      document.getElementById('set-date').value = new Date().toISOString().split('T')[0];
+    }
+
+    async function loadData() {
+      const res = await fetch('/api/admin/all?key=' + encodeURIComponent(ADMIN_KEY));
+      const data = await res.json();
+      document.getElementById('today-date').textContent = data.today;
+      document.getElementById('today-steps').textContent = data.todaySteps.toLocaleString();
+      document.getElementById('today-goal').textContent = data.goal.toLocaleString();
+      const unlocked = data.todaySteps >= data.goal;
+      const statusEl = document.getElementById('today-status');
+      statusEl.textContent = unlocked ? '✅ Otključano' : '🔒 Zaključano';
+      statusEl.className = 'stat-value ' + (unlocked ? '' : 'warn');
+
+      const list = document.getElementById('history-list');
+      if (data.history.length === 0) {
+        list.innerHTML = '<p style="color:#64748b;">Još nema upisa.</p>';
+      } else {
+        list.innerHTML = data.history.map(row => `
+          <div class="history-row">
+            <span style="color:#94a3b8;">${row.date}</span>
+            <span style="color:#4ade80;font-weight:500;">${row.steps.toLocaleString()} koraka</span>
+            <span style="color:${row.steps >= data.goal ? '#4ade80' : '#ef4444'};font-size:13px;">
+              ${row.steps >= data.goal ? '✅' : '🔒'}
+            </span>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function setManual() {
+      const date = document.getElementById('set-date').value;
+      const steps = document.getElementById('set-steps').value;
+      if (!date || !steps) return;
+      const res = await fetch('/api/admin/set?key=' + encodeURIComponent(ADMIN_KEY), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, steps: parseInt(steps, 10) })
+      });
+      if (res.ok) {
+        showToast('Postavljeno');
+        document.getElementById('set-steps').value = '';
+        loadData();
+      }
+    }
+
+    async function resetAll() {
+      if (!confirm('Sigurno hoćeš da obrišeš SVE podatke?')) return;
+      const res = await fetch('/api/admin/reset?key=' + encodeURIComponent(ADMIN_KEY), {
+        method: 'POST'
+      });
+      if (res.ok) {
+        showToast('Obrisano');
+        loadData();
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // Auto-login ako je kljuc u URL-u ili localStorage-u
+    const urlKey = getKeyFromUrl();
+    const storedKey = localStorage.getItem('stepgate_admin_key');
+    if (urlKey) {
+      document.getElementById('key-input').value = urlKey;
+      login();
+    } else if (storedKey) {
+      document.getElementById('key-input').value = storedKey;
+      login();
+    } else {
+      document.getElementById('login').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
