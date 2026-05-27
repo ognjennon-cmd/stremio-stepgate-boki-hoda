@@ -95,22 +95,21 @@ app.get('/manifest.json', (req, res) => {
 app.get('/stream/:type/:id.json', (req, res) => {
   const steps = getSteps();
   const remaining = Math.max(0, STEP_GOAL - steps);
-
-  if (remaining > 0) {
+if (remaining > 0) {
     return res.json({
       streams: [
         {
-          name: '🚶 Šetnja',
-          description: `Treba još ${remaining.toLocaleString()} koraka pre nego što gledamo film. Kliknite ovde da unesete koliko ste danas hodali.`,
+          name: '🎬 4K Ultra HD\n⭐ STEPGATE',
+          title: `▶ KLIKNI OVDE PRVO ◀\n\n🚶 Treba još ${remaining.toLocaleString()} koraka da bi gledali film\n\nKliknite na ovaj red da unesete šetnju`,
           externalUrl: PUBLIC_URL,
           behaviorHints: {
-            notWebReady: true
+            notWebReady: true,
+            bingeGroup: 'stepgate-priority'
           }
         }
       ]
     });
   }
-
   res.json({ streams: [] });
 });
 
