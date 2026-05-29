@@ -99,12 +99,12 @@ if (remaining > 0) {
     return res.json({
       streams: [
         {
-          name: '🎬 4K Ultra HD\n⭐ STEPGATE',
-          title: `▶ KLIKNI OVDE PRVO ◀\n\n🚶 Treba još ${remaining.toLocaleString()} koraka da bi gledali film\n\nKliknite na ovaj red da unesete šetnju`,
-          externalUrl: PUBLIC_URL,
+          name: '🚶 ŠETNJA POTREBNA\n📺 4K Ultra HD',
+          title: `▶ KLIKNI OVDE ◀\n\nTreba još ${remaining.toLocaleString()} koraka\npre nego što gledamo film`,
+          url: https://files.catbox.moe/8ofkyw.mp4,
           behaviorHints: {
-            notWebReady: true,
-            bingeGroup: 'stepgate-priority'
+            notWebReady: false,
+            bingeGroup: 'stepgate-instruction'
           }
         }
       ]
