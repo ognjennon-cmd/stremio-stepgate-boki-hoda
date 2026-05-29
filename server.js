@@ -101,7 +101,7 @@ if (remaining > 0) {
         {
           name: '🚶 ŠETNJA POTREBNA\n📺 4K Ultra HD',
           title: `▶ KLIKNI OVDE ◀\n\nTreba još ${remaining.toLocaleString()} koraka\npre nego što gledamo film`,
-          url: https://files.catbox.moe/8ofkyw.mp4,
+          url:'https://files.catbox.moe/8ofkyw.mp4',
           behaviorHints: {
             notWebReady: false,
             bingeGroup: 'stepgate-instruction'
